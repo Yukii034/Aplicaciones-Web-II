@@ -15,6 +15,8 @@ var (
 
 // -----------------------------------------------------------------------------
 // INTERFAZ (conjunto de metodos)
+// Analogía:: cualquier cosa que quiera llamarse Repositorio debe saber hacer estas tres operaciones
+// Qué hace la interfaz en sí
 // -----------------------------------------------------------------------------
 
 type Repositorio interface {
@@ -29,7 +31,7 @@ type Repositorio interface {
 
 type RepoMemoria struct {
 	productos []Producto
-}
+} // "BD" en memoria, se cambiaría por el repositorio de una BD real
 
 type Categoria struct {
 	ID     int
@@ -58,7 +60,7 @@ var categorias = []Categoria{}
 
 func NewRepoMemoria() *RepoMemoria {
 	return &RepoMemoria{productos: []Producto{}}
-}
+} // Crea un Repositorio vacío, la & es el puntero para decir donde se encuentra
 
 // -----------------------------------------------------------------------------
 // FUNCIONES DE CATEGORÍAS
@@ -87,9 +89,9 @@ func BuscarCategoriaPorID(id int) (Categoria, error) {
 func (r *RepoMemoria) Guardar(p Producto) error {
 	r.productos = append(r.productos, p)
 	return nil
-}
+} // La r indica que son funciones del repo
 
-func (r *RepoMemoria) Buscar(id int) (Producto, error) {
+func (r *RepoMemoria) BuscarPorID(id int) (Producto, error) {
 	// Mismo problema que BuscarCategoriaPorID.
 	for _, p := range r.productos {
 		if p.ID == id {

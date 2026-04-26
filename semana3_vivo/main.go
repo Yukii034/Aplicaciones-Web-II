@@ -17,46 +17,44 @@ package main
 import (
 	"fmt"
 	"semana3_vivo/internal/inventario"
-)
+) // Importa el modulo de inventario, guardado en la carpeta internal
 
 // -----------------------------------------------------------------------------
 // MAIN
 // -----------------------------------------------------------------------------
 
 func main() {
-	// Cargamos datos iniciales
+	// Agrega a la lista global - llama al modulo de inventario, con la funcion y struct especificos
 	inventario.AgregarCategoria(inventario.Categoria{ID: 1, Nombre: "Bebidas"})
 	inventario.AgregarCategoria(inventario.Categoria{ID: 2, Nombre: "Snacks"})
 
-	var repo inventario.Repositorio = inventario.NewRepoMemoria()
+	var repo inventario.Repositorio = inventario.NewRepoMemoria() // Crea el nuevo repositorio. Cambiar si se usara una bd, se usan los mismos 3 metodos.
 
+	// Guarda productos en el repositorio, llama a las funciones del repositorio y el struct especificos
 	repo.Guardar(inventario.Producto{ID: 101, Nombre: "Agua 500ml", Precio: 0.50, Stock: 120, CategoriaID: 1})
 	repo.Guardar(inventario.Producto{ID: 102, Nombre: "Cola 500ml", Precio: 1.00, Stock: 80, CategoriaID: 1})
 	repo.Guardar(inventario.Producto{ID: 201, Nombre: "Papas fritas", Precio: 1.25, Stock: 45, CategoriaID: 2})
 
-	// Usamos las funciones
+	// Usa las funciones del repositorio
+	// Lista de productos
 	fmt.Printf("Listando productos: \n")
 	for _, p := range repo.Listar() {
-		fmt.Printf("%+v \n, p")
+		fmt.Printf("%+v \n", p)
 	}
 
-	fmt.Printf("\nValor total del inventario: $%.2f\n", inventario.CalcularValorInventario())
-
-	// Buscamos un producto existente
-	p, err := inventario.BuscarProductoPorID(101)
+	// Busca un producto existente por ID
+	p, err := repo.BuscarPorID(101)
 	if err != nil {
 		fmt.Printf("Error al buscar producto: %s \n", err.Error())
 		return
 	}
 	fmt.Printf("\nEncontrado: %s\n", p.Nombre)
 
-	// Buscamos uno que NO existe — aquí está el problema que resolveremos
-	fantasma, err := inventario.BuscarProductoPorID(999)
+	// Busca uno que NO existe
+	fantasma, err := repo.BuscarPorID(999)
 	if err != nil {
 		fmt.Printf("Error al buscar producto: %s \n", err.Error())
 		return
 	}
 	fmt.Println(fantasma)
-	// Output: Buscando ID 999: {ID:0 Nombre: Precio:0 Stock:0 CategoriaID:0}
-	// ¿Cómo sabe el llamador si existía o no? No hay forma limpia.
 }
