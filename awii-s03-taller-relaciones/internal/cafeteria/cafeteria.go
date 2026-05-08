@@ -13,6 +13,8 @@ var (
 	ErrProductoNoEncontrado = errors.New("Producto no encontrado")
 	ErrStockInsuficiente    = errors.New("Stock insuficiente")
 	ErrSaldoInsuficiente    = errors.New("Saldo insuficiente del cliente")
+	//ErrDatosInvalidos       = errors.New("Datos invalidos")
+	//ErrNoEncontrado         = errors.New("Error no encontrado")
 )
 
 // -----------------------------------------------------------------------------

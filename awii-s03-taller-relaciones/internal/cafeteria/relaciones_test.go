@@ -1,6 +1,9 @@
 package cafeteria
 
-import "testing"
+import (
+	//"strings"
+	"testing"
+)
 
 func TestGuardar_DebeAlmacenarUnProducto(t *testing.T) {
 	//Arrange - arreglar los datos
@@ -35,3 +38,26 @@ func TestBuscarPorID_DebeRetornarErrorSiNoExiste(t *testing.T) {
 	//	t.Errorf("Se esperaba el error ErrNoEncontrado, pero se obtuvo %v", err)
 	//}
 }
+
+/*func (m *RepoMemoria) BuscarPorNombre(nombre string) (Producto, error) {
+	objetivo := strings.ToLower(strings.TrimSpace(nombre))
+	if objetivo == "" {
+		return Producto{}, ErrDatosInvalidos
+	}
+	for _, p := range m.productos {
+		if strings.ToLower(p.Nombre) == objetivo {
+			return p, nil
+		}
+	}
+	return Producto{}, ErrNoEncontrado
+}
+
+func Test_BuscarPorNombre_Existe(t *testing.T){
+	repo := NewRepoMemoria()
+	p := Producto{ID: 1, Nombre: "Prueba", Precio: 5.5, Stock: 10, Categoria: "Prueba"}
+
+	repo.GuardarProducto(p)
+
+	err := repo.GuardarProducto(p)
+}
+*/
