@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -13,7 +12,7 @@ import (
 
 // ListarCategorias atiende GET /api/v1/categorias.
 func (s *Server) ListarCategorias(w http.ResponseWriter, _ *http.Request) {
-	categorias := s.Storage.ListarCategorias()
+	categorias := s.Categorias.Listar()
 	RespondJSON(w, http.StatusOK, categorias)
 }
 
@@ -21,13 +20,13 @@ func (s *Server) ListarCategorias(w http.ResponseWriter, _ *http.Request) {
 func (s *Server) ObtenerCategoria(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		RespondError(w, http.StatusBadRequest, "id debe ser un número entero")
+		RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	categoria, encontrado := s.Storage.BuscarCategoriaPorID(id)
-	if !encontrado {
-		RespondError(w, http.StatusNotFound, "categoría no encontrada")
+	categoria, err := s.Categorias.Obtener(id)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -41,12 +40,12 @@ func (s *Server) CrearCategoria(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, http.StatusBadRequest, "JSON inválido: "+err.Error())
 		return
 	}
-	if strings.TrimSpace(nueva.Nombre) == "" {
-		RespondError(w, http.StatusBadRequest, "el campo nombre es obligatorio")
+
+	creada, err := s.Categorias.Crear(nueva)
+	if err != nil {
+		RespondError(w, statusDeError(err), err.Error())
 		return
 	}
-
-	creada := s.Storage.CrearCategoria(nueva)
 	RespondJSON(w, http.StatusCreated, creada)
 }
 
@@ -63,14 +62,10 @@ func (s *Server) ActualizarCategoria(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, http.StatusBadRequest, "JSON inválido: "+err.Error())
 		return
 	}
-	if strings.TrimSpace(datos.Nombre) == "" {
-		RespondError(w, http.StatusBadRequest, "el campo nombre es obligatorio")
-		return
-	}
 
-	actualizada, encontrada := s.Storage.ActualizarCategoria(id, datos)
-	if !encontrada {
-		RespondError(w, http.StatusNotFound, "categoría no encontrada")
+	actualizada, err := s.Categorias.Actualizar(id, datos)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -85,8 +80,8 @@ func (s *Server) BorrarCategoria(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !s.Storage.BorrarCategoria(id) {
-		RespondError(w, http.StatusNotFound, "categoría no encontrada")
+	if err := s.Categorias.Borrar(id); err != nil {
+		RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 

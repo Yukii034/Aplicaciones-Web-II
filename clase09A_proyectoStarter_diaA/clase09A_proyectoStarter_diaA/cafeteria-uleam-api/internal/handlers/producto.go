@@ -5,28 +5,26 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 
 	"cafeteria-uleam-api/internal/models"
-	"cafeteria-uleam-api/internal/storage"
 )
 
-// Server agrupa las dependencias compartidas por los handlers.
-// Recibe el storage por inyección de dependencias desde main.
-type Server struct {
-	Storage storage.Almacen
-}
+// // Server agrupa las dependencias compartidas por los handlers.
+// // Recibe el storage por inyección de dependencias desde main.
+// type Server struct {
+// 	Storage storage.Almacen
+// }
 
-// NewServer construye un Server listo para usar.
-func NewServer(s storage.Almacen) *Server {
-	return &Server{Storage: s}
-}
+// // NewServer construye un Server listo para usar.
+// func NewServer(s storage.Almacen) *Server {
+// 	return &Server{Storage: s}
+// }
 
 // ListarProductos atiende GET /api/v1/productos.
 func (s *Server) ListarProductos(w http.ResponseWriter, _ *http.Request) {
-	productos := s.Storage.ListarProductos()
+	productos := s.Productos.Listar()
 	RespondJSON(w, http.StatusOK, productos)
 }
 
@@ -38,9 +36,9 @@ func (s *Server) ObtenerProducto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	producto, encontrado := s.Storage.BuscarProductoPorID(id)
-	if !encontrado {
-		RespondError(w, http.StatusNotFound, "producto no encontrado")
+	producto, err := s.Productos.Obtener(id)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -54,16 +52,12 @@ func (s *Server) CrearProducto(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, http.StatusBadRequest, "JSON inválido: "+err.Error())
 		return
 	}
-	if strings.TrimSpace(nuevo.Nombre) == "" {
-		RespondError(w, http.StatusBadRequest, "el campo nombre es obligatorio")
-		return
-	}
-	if nuevo.Precio < 0 {
-		RespondError(w, http.StatusBadRequest, "el precio no puede ser negativo")
-		return
-	}
 
-	creado := s.Storage.CrearProducto(nuevo)
+	creado, err := s.Productos.Crear(nuevo)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	RespondJSON(w, http.StatusCreated, creado)
 }
 
@@ -80,18 +74,10 @@ func (s *Server) ActualizarProducto(w http.ResponseWriter, r *http.Request) {
 		RespondError(w, http.StatusBadRequest, "JSON inválido: "+err.Error())
 		return
 	}
-	if strings.TrimSpace(datos.Nombre) == "" {
-		RespondError(w, http.StatusBadRequest, "el campo nombre es obligatorio")
-		return
-	}
-	if datos.Precio < 0 {
-		RespondError(w, http.StatusBadRequest, "el precio no puede ser negativo")
-		return
-	}
 
-	actualizado, encontrado := s.Storage.ActualizarProducto(id, datos)
-	if !encontrado {
-		RespondError(w, http.StatusNotFound, "producto no encontrado")
+	actualizado, err := s.Productos.Actualizar(id, datos)
+	if err != nil {
+		RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -106,8 +92,8 @@ func (s *Server) BorrarProducto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !s.Storage.BorrarProducto(id) {
-		RespondError(w, http.StatusNotFound, "producto no encontrado")
+	if err := s.Productos.Borrar(id); err != nil {
+		RespondError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 

@@ -16,6 +16,7 @@ import (
 	"cafeteria-uleam-api/internal/handlers"
 	"cafeteria-uleam-api/internal/middleware"
 	"cafeteria-uleam-api/internal/models"
+	"cafeteria-uleam-api/internal/service"
 	"cafeteria-uleam-api/internal/storage"
 )
 
@@ -26,7 +27,7 @@ func main() {
 	if err != nil {
 		log.Fatal("no se pudo abrir la base de datos: ", err)
 	}
-	if err := gdb.AutoMigrate(&models.Producto{}, &models.Categoria{}); err != nil {
+	if err := gdb.AutoMigrate(&models.Producto{}, &models.Categoria{}, &models.Usuario{}); err != nil {
 		log.Fatal("falló AutoMigrate: ", err)
 	}
 	almacenGorm := storage.NuevoAlmacenSQLite(gdb)
@@ -54,7 +55,11 @@ func main() {
 	}
 
 	// 3. Server con inyección de dependencias. No sabe qué backend recibió.
-	servidor := handlers.NewServer(almacen)
+	usuarioRepo := storage.NewUsuarioGORM(gdb)
+	authService := service.NewAuthService(usuarioRepo)
+	categoriaService := service.NewCategoriaService(almacen)
+	productoService := service.NewProductoService(almacen)
+	servidor := handlers.NewServer(productoService, categoriaService, authService)
 
 	// 4. Router + middleware.
 	r := chi.NewRouter()
@@ -64,17 +69,24 @@ func main() {
 
 	// 5. Rutas versionadas /api/v1/.
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Get("/productos", servidor.ListarProductos)
-		r.Post("/productos", servidor.CrearProducto)
-		r.Get("/productos/{id}", servidor.ObtenerProducto)
-		r.Put("/productos/{id}", servidor.ActualizarProducto)
-		r.Delete("/productos/{id}", servidor.BorrarProducto)
 
-		r.Get("/categorias", servidor.ListarCategorias)
-		r.Post("/categorias", servidor.CrearCategoria)
-		r.Get("/categorias/{id}", servidor.ObtenerCategoria)
-		r.Put("/categorias/{id}", servidor.ActualizarCategoria)
-		r.Delete("/categorias/{id}", servidor.BorrarCategoria)
+		r.Post("/auth/register", servidor.Registrar)
+		r.Post("/auth/login", servidor.Login)
+
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(authService))
+			r.Get("/productos", servidor.ListarProductos)
+			r.Post("/productos", servidor.CrearProducto)
+			r.Get("/productos/{id}", servidor.ObtenerProducto)
+			r.Put("/productos/{id}", servidor.ActualizarProducto)
+			r.Delete("/productos/{id}", servidor.BorrarProducto)
+
+			r.Get("/categorias", servidor.ListarCategorias)
+			r.Post("/categorias", servidor.CrearCategoria)
+			r.Get("/categorias/{id}", servidor.ObtenerCategoria)
+			r.Put("/categorias/{id}", servidor.ActualizarCategoria)
+			r.Delete("/categorias/{id}", servidor.BorrarCategoria)
+		})
 	})
 
 	log.Println("Servidor escuchando en http://localhost:8080")

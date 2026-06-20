@@ -1,3 +1,4 @@
+// Validaciones de productos
 package service
 
 import (
@@ -13,16 +14,20 @@ func NewProductoService(repo storage.ProductoRepository) *ProductoService {
 	return &ProductoService{repo: repo}
 }
 
+func (s *ProductoService) ListarProductos() []models.Producto {
+	return s.repo.ListarProductos()
+}
+
 func (s *ProductoService) Listar() []models.Producto {
 	return s.repo.ListarProductos()
 }
 
-func (s *ProductoService) Obtener(id int) (models.Producto, bool) {
+func (s *ProductoService) Obtener(id int) (models.Producto, error) {
 	p, ok := s.repo.BuscarProductoPorID(id)
 	if !ok {
-		return models.Producto{}, false
+		return models.Producto{}, ErrNoEncontrado
 	}
-	return p, true
+	return p, nil
 }
 
 func (s *ProductoService) Crear(p models.Producto) (models.Producto, error) {

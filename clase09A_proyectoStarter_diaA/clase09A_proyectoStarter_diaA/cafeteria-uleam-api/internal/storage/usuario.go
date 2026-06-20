@@ -16,17 +16,21 @@ func NewUsuarioGORM(db *gorm.DB) *UsuarioGORM {
 }
 
 func (r *UsuarioGORM) CrearUsuario(u models.Usuario) (models.Usuario, error) {
-	u.CreatedAt = time.Now()
+	u.CreadoEn = time.Now()
+
 	if err := r.db.Create(&u).Error; err != nil {
 		return models.Usuario{}, err
 	}
+
 	return u, nil
 }
 
 func (r *UsuarioGORM) BuscarUsuarioPorEmail(email string) (models.Usuario, bool) {
 	var u models.Usuario
-	if err := r.db.Where("email=?", email).First(&u).Error; err != nil {
+
+	if err := r.db.Where("email = ?", email).First(&u).Error; err != nil {
 		return models.Usuario{}, false
 	}
+
 	return u, true
 }

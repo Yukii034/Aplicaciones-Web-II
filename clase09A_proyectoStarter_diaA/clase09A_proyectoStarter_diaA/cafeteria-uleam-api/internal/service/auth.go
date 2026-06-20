@@ -1,10 +1,12 @@
 package service
 
 import (
+	"time"
+
 	"cafeteria-uleam-api/internal/models"
 	"cafeteria-uleam-api/internal/storage"
+
 	"strings"
-	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -15,15 +17,16 @@ var secretJWT = []byte("cualquier_cosa_secreta")
 const duracionToken = 24 * time.Hour
 
 type Claims struct {
-	UsuarioID int `json:"uid"`
+	Email     string `json:"email"`
+	UsuarioID int    `json:"usuario_id"`
 	jwt.RegisteredClaims
 }
 
 type AuthService struct {
-	repo storage.UsuarioRepository
+	repo storage.UserRepository
 }
 
-func NewAuthService(repo storage.UsuarioRepository) *AuthService {
+func NewAuthService(repo storage.UserRepository) *AuthService {
 	return &AuthService{repo: repo}
 }
 
@@ -36,16 +39,14 @@ func (s *AuthService) Registrar(email, password string) (models.Usuario, error) 
 	if _, existe := s.repo.BuscarUsuarioPorEmail(email); existe {
 		return models.Usuario{}, ErrEmailEnUso
 	}
-
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return models.Usuario{}, err
 	}
-	return s.repo.CrearUsuario(
-		models.Usuario{
-			Email:        email,
-			PasswordHash: string(hash),
-		})
+	return s.repo.CrearUsuario(models.Usuario{
+		Email:        email,
+		PasswordHash: string(hash),
+	})
 }
 
 func (s *AuthService) Login(email, password string) (string, error) {
@@ -54,17 +55,19 @@ func (s *AuthService) Login(email, password string) (string, error) {
 	if email == "" || password == "" {
 		return "", ErrCredencialesInvalidas
 	}
+
 	u, existe := s.repo.BuscarUsuarioPorEmail(email)
 	if !existe {
 		return "", ErrCredencialesInvalidas
 	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)); err != nil {
 		return "", ErrCredencialesInvalidas
 	}
-	return s.generarToken(u)
+	return s.GenerarToken(u) //Linea reutilizable
 }
 
-func (s *AuthService) generarToken(u models.Usuario) (string, error) {
+func (s *AuthService) GenerarToken(u models.Usuario) (string, error) {
 	claims := &Claims{
 		UsuarioID: u.ID,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -72,21 +75,22 @@ func (s *AuthService) generarToken(u models.Usuario) (string, error) {
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(secretJWT)
 }
 
-func (s *AuthService) ValidarToken(tokenStr string) (int, error) {
-	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(t *jwt.Token) (any, error) {
+// Recoge el token, lo guarda en Claims y lo valida
+func (s *AuthService) ValidarToken(token string) (int, error) {
+	parsedToken, err := jwt.ParseWithClaims(token, &Claims{}, func(t *jwt.Token) (any, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, ErrCredencialesInvalidas
 		}
 		return secretJWT, nil
 	})
-	if err != nil || !token.Valid {
+	if err != nil || !parsedToken.Valid {
 		return 0, ErrCredencialesInvalidas
 	}
-	claims, ok := token.Claims.(*Claims)
+	claims, ok := parsedToken.Claims.(*Claims)
 	if !ok {
 		return 0, ErrCredencialesInvalidas
 	}

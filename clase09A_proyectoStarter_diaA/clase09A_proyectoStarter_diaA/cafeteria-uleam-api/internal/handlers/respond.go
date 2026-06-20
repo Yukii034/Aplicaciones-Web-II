@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"cafeteria-uleam-api/internal/service"
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 )
@@ -32,4 +34,21 @@ func RespondJSON(w http.ResponseWriter, status int, data any) {
 // texto plano unas veces y JSON otras.
 func RespondError(w http.ResponseWriter, status int, mensaje string) {
 	RespondJSON(w, status, map[string]string{"error": mensaje})
+}
+
+func statusDeError(err error) int {
+	switch {
+	case errors.Is(err, service.ErrNombreVacio):
+		return http.StatusBadRequest
+	case errors.Is(err, service.ErrPrecioNegativo):
+		return http.StatusBadRequest
+	case errors.Is(err, service.ErrNoEncontrado):
+		return http.StatusNotFound
+	case errors.Is(err, service.ErrEmailEnUso):
+		return http.StatusBadRequest
+	case errors.Is(err, service.ErrCredencialesInvalidas):
+		return http.StatusUnauthorized
+	default:
+		return http.StatusInternalServerError
+	}
 }
